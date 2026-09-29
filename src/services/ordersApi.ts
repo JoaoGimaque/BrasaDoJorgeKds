@@ -21,6 +21,12 @@ export class OrdersApiError extends Error {
 
 type FetchImplementation = typeof fetch;
 
+export interface OrdersApi {
+  getOrders(): Promise<Order[]>;
+  getOrder(id: number): Promise<Order>;
+  updateOrderStage(id: number, stage: OrderStage): Promise<Order>;
+}
+
 const ORDER_ORIGINS: readonly OrderOrigin[] = [
   'POS',
   'WHATSAPP_AI',
@@ -121,7 +127,7 @@ function parseOrdersResponse(value: unknown): OrdersResponse {
 export function createOrdersApi(
   baseUrl: string,
   fetchImplementation: FetchImplementation = fetch,
-) {
+): OrdersApi {
   async function request(path: string, init?: RequestInit): Promise<unknown> {
     let response: Response;
 
