@@ -6,6 +6,9 @@ export interface OrdersState {
   pendingOrderIds: number[];
   isLoading: boolean;
   error: string | null;
+  connectionStatus: 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
+  retryAttempt: number;
+  connectionError: string | null;
 }
 
 export type OrdersAction =
@@ -15,7 +18,13 @@ export type OrdersAction =
   | { type: 'orderUpserted'; order: Order }
   | { type: 'stageUpdateStarted'; orderId: number }
   | { type: 'stageUpdateSucceeded'; order: Order }
-  | { type: 'stageUpdateFailed'; orderId: number; message: string };
+  | { type: 'stageUpdateFailed'; orderId: number; message: string }
+  | {
+      type: 'connectionStatusChanged';
+      status: OrdersState['connectionStatus'];
+      retryAttempt: number;
+      message: string | null;
+    };
 
 export const initialOrdersState: OrdersState = {
   byId: {},
@@ -23,6 +32,9 @@ export const initialOrdersState: OrdersState = {
   pendingOrderIds: [],
   isLoading: false,
   error: null,
+  connectionStatus: 'connecting',
+  retryAttempt: 0,
+  connectionError: null,
 };
 
 function upsertOrder(state: OrdersState, order: Order): OrdersState {
@@ -82,6 +94,13 @@ export function ordersReducer(
         ...state,
         pendingOrderIds: removePendingOrder(state, action.orderId),
         error: action.message,
+      };
+    case 'connectionStatusChanged':
+      return {
+        ...state,
+        connectionStatus: action.status,
+        retryAttempt: action.retryAttempt,
+        connectionError: action.message,
       };
   }
 }

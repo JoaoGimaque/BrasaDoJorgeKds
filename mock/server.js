@@ -243,7 +243,6 @@ const server = http.createServer(async (req, res) => {
       Connection: 'keep-alive',
       'Access-Control-Allow-Origin': '*',
     });
-    res.write('retry: 3000\n\n'); // dica de reconexão para o EventSource
     res.write(`event: snapshot\ndata: ${JSON.stringify([...orders.values()])}\n\n`);
     clients.add(res);
     req.on('close', () => clients.delete(res));

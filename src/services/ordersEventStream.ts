@@ -1,4 +1,5 @@
 import EventSource, {
+  type EventSourceOptions,
   type EventSourceListener,
 } from 'react-native-sse';
 import type { OrdersEventName } from '../store/ordersEventHandler';
@@ -16,6 +17,11 @@ export interface OrdersEventStream {
   close(): void;
 }
 
+export type OrdersEventSourceFactory = (
+  url: string,
+  options: EventSourceOptions,
+) => EventSource<OrdersEventName>;
+
 function toError(error: unknown): Error {
   const message =
     typeof error === 'object' &&
@@ -30,8 +36,13 @@ function toError(error: unknown): Error {
 export function connectOrdersEventStream(
   baseUrl: string,
   handlers: OrdersEventStreamHandlers,
+  createEventSource: OrdersEventSourceFactory = (url, options) =>
+    new EventSource<OrdersEventName>(url, options),
 ): OrdersEventStream {
-  const eventSource = new EventSource<OrdersEventName>(`${baseUrl}/events`);
+  const eventSource = createEventSource(`${baseUrl}/events`, {
+    pollingInterval: 0,
+    timeoutBeforeConnection: 0,
+  });
 
   const onOpen: EventSourceListener<OrdersEventName, 'open'> = () => {
     handlers.onOpen();
