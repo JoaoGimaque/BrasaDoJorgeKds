@@ -111,17 +111,27 @@ function parseOrder(value: unknown): Order {
   return value;
 }
 
+export function parseOrderPayload(value: unknown): Order {
+  return parseOrder(value);
+}
+
+export function parseOrdersPayload(value: unknown): Order[] {
+  if (!Array.isArray(value) || !value.every(isOrder)) {
+    throw new OrdersApiError('A API retornou uma lista de pedidos inválida.');
+  }
+  return value;
+}
+
 function parseOrdersResponse(value: unknown): OrdersResponse {
   if (
     !isRecord(value) ||
     value.pagination !== null ||
-    !Array.isArray(value.orders) ||
-    !value.orders.every(isOrder)
+    !Array.isArray(value.orders)
   ) {
     throw new OrdersApiError('A API retornou uma lista de pedidos inválida.');
   }
 
-  return value as unknown as OrdersResponse;
+  return { pagination: null, orders: parseOrdersPayload(value.orders) };
 }
 
 export function createOrdersApi(
