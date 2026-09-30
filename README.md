@@ -1,143 +1,189 @@
-# Desafio Front-end · Pigz
+# Brasa do Jorge KDS
 
-Olá! Este é o desafio técnico de Front-end da Pigz. Ele é o **mesmo para todos os níveis** — júnior, pleno ou sênior. Você entrega até onde conseguir, e a **profundidade da sua entrega é o que mostra o seu nível** (não precisa dizer qual é).
+Este projeto entrega um painel de cozinha para a Brasa do Jorge, com foco em pedidos ativos, tempo de espera e transição clara de status em tempo real. A aplicação foi construída em React Native + TypeScript e consome o mock já disponibilizado na pasta `mock`, sem criar um backend paralelo.
 
-Aqui a gente não te entrega uma tela pronta pra você copiar. A gente te apresenta um problema de um lojista e quer ver como você chega da dor até uma solução funcionando: entender o que importa, decidir o que fazer, projetar e construir.
+## Visão geral da solução
 
-Não existe um documento de requisitos fechado. Você é dono da solução. Boa parte do que a gente avalia é o que você decide construir, o que decide deixar de fora, e como defende essas escolhas.
+O KDS foi pensado para o ambiente real da cozinha:
 
-## Sobre usar IA
+- fila de pedidos por ordem de chegada
+- indicadores visíveis de tempo de espera e atrasos
+- filtros por etapa do pedido
+- fluxo de alterações de status com regras centralizadas
+- conexão em tempo real via SSE
+- reconexão automática com preservação do último estado conhecido
+- interface de toque grande, legível e adequada a tablet em modo paisagem
 
-Pode usar, e a gente recomenda. Claude, Copilot, o que você usa no dia a dia. Trabalhamos com IA aqui o tempo todo, então não faz sentido te avaliar num cenário que não é o real.
+A tela principal monta um dashboard de cozinha com contadores, conexão em tempo real e cards de pedidos com informações relevantes para a produção.
 
-Não estamos medindo se você digitou o código na mão. Estamos olhando se você sabe conduzir a ferramenta, revisar o que sai dela, jogar fora o que não serve e sustentar cada decisão.
+## Decisão de arquitetura
 
-Por isso, no seu README, conte como usou IA: onde ela ajudou, onde ela errou e você corrigiu, e o que você fez questão de decidir por conta própria. Ser transparente conta a favor. Entregar código que você não sabe explicar conta contra.
+Escolhi React Native + TypeScript por duas razões principais:
 
-## O cenário: Brasa do Jorge
+1. o desafio é pensado para uma experiência de tablet de cozinha, com foco em UI e velocidade de iteração;
+2. a stack permite manter boa qualidade de tipos e testes, sem abrir mão da entrega funcional em um ambiente móvel real.
 
-A **Brasa do Jorge** é uma hamburgueria artesanal de bairro, ponto de rua, 4 anos de casa, fama de "melhor smash da região". Você foi até lá conhecer a operação. Segue o que você viu e ouviu.
+A solução foi organizada em camadas bem definidas:
 
-### Os números (mês passado)
-- ~**3.200 pedidos/mês** (~110 por dia), ticket médio **R$ 52**
-- Faturamento ~**R$ 166 mil/mês**
-- **60% do movimento** se concentra sexta e sábado, das **19h às 22h30**
-- Canais de pedido: **Salão/balcão 35%** · **WhatsApp 25%** · **Apps (iFood + Pigz) 40%**
-- No pico, chegam **até 14 pedidos em 20 minutos** — todos na mesma cozinha
+- `src/types/order.ts`: modelos do domínio
+- `src/constants/orderLifecycle.ts`: regras de transição entre etapas
+- `src/services/ordersApi.ts`: cliente REST para listar e atualizar pedidos
+- `src/store/ordersReducer.ts`: estado normalizado e deduplicado
+- `src/store/ordersStream.ts`: integração com SSE e retry
+- `src/components/OrderCard.tsx`: card do pedido e ações de cozinha
+- `src/screens/KdsScreen.tsx`: dashboard do painel
+- `src/hooks/useOrdersKds.ts`: orquestração entre carga inicial e stream
 
-### A equipe (8 pessoas)
-- **Cozinha (4):** 1 chapeiro, 1 auxiliar de chapa, 1 na fritadeira (batata/frango), 1 na montagem/finalização
-- **Salão (2):** 2 garçons, que também levam o pedido de delivery até o balcão de retirada
-- **Frente (1):** 1 caixa/atendente de balcão
-- **Seu Jorge:** circula, apaga incêndio, às vezes monta lanche
+## Requisitos atendidos
 
-### O layout da cozinha (linha de produção)
+- tempo real com SSE e reconexão automática
+- deduplicação de eventos para não duplicar pedidos
+- fila ativa e filtros por etapa
+- status de pedido com transições explícitas e centralizadas
+- tela em modo paisagem com leitura rápida da fila
+- feedback visual para pedidos críticos e atrasados
+- fallback com erro e retry sem quebrar a tela
+- testes focados em regras de negócio e UI central
+
+## Como rodar
+
+### 1) Instalar dependências
+
+```bash
+npm install
 ```
-[ CHAPA ] → [ FRITADEIRA ] → [ BANCADA DE MONTAGEM ] → [ EXPEDIÇÃO / balcão de saída ]
+
+### 2) Subir o mock do backend
+
+```bash
+npm run mock
 ```
-- Salão com **10 mesas**; balcão de retirada separado para delivery
-- Hoje o único vínculo entre cozinha, salão e delivery é **uma impressora térmica** cuspindo comanda de papel
 
-### O cardápio
+O mock vai subir em `http://localhost:4000`.
 
-![Cardápio da Brasa do Jorge](imagens/BrasaDoJorge-cardapio.jpg)
+Se você estiver usando um emulador Android, o app precisa apontar para `http://10.0.2.2:4000`.
 
-É o que sai da cozinha — hambúrgueres na chapa, fritos na fritadeira, bebidas e shakes na montagem. É esse o conteúdo dos pedidos que vão cair no painel.
+Se você estiver usando um dispositivo físico, a rota mais segura é:
 
-### Seu Jorge desabafa (na visita, ele disse:)
+```bash
+adb reverse tcp:4000 tcp:4000
+```
 
-> *"Sexta à noite chega pedido do balcão, do zap e do app tudo junto. Vira uma pilha de papel na bancada. Semana passada uma comanda caiu atrás da chapa e o cara esperou 40 minutos."*
+e então o app pode continuar consumindo `http://localhost:4000` do dispositivo.
 
-> *"Meu problema não é fazer o lanche, é **saber qual fazer primeiro**. Às vezes o último a chegar sai antes e quem tá esperando há meia hora fica pra trás."*
+### 3) Rodar o app no Android
 
-> *"Tem pedido que é **uma coca** e pedido que é **quatro combos**. Na pilha de papel parece tudo igual, aí a gente se atrapalha."*
+Em um terminal separado:
 
-> *"A batata sai da fritadeira e o hambúrguer ainda tá na chapa — ou o contrário. **Nada sincroniza**, um dos dois sempre esfria esperando o outro."*
+```bash
+npm start
+```
 
-> *"Quando fica pronto, o garçom não sabe. Ou ele **fica vindo na cozinha toda hora perguntar**, ou o lanche **esfria no balcão** esperando alguém perceber."*
+E em outro:
 
-> *"Cliente pede **sem cebola, ponto mal passado, cheddar extra** — isso se perde no papel. Volta o prato, é retrabalho e prejuízo."*
+```bash
+npx react-native run-android
+```
 
-> *"Delivery e salão brigam pela mesma cozinha. Não sei o que priorizar: o cara que tá na mesa olhando pra mim ou o motoboy que já chegou?"*
+> Observação: o projeto foi pensado para Android/tablet, que é o contexto principal do desafio. O comportamento também fica aceitável em telas menores, mas o cenário principal é a cozinha em modo paisagem.
 
-> *"A impressora **vive travando e acabando papel** no pior momento."*
+## Premissas e recortes
 
-> *"Meus funcionários **não podem ficar clicando** — mão suja, correria. Tem que ser no olhar."*
+A premissa adotada foi resolver a dor principal da cozinha:
 
-> *"Às vezes o cliente **desiste** e a cozinha já começou o pedido. Ninguém avisa."*
+- saber o que chegar primeiro
+- identificar pedidos atrasados
+- priorizar produção por fila e tempo de espera
+- evitar confusão de informação em uma bancada caótica
 
-E é assim que esses pedidos chegam hoje, numa sexta no pico:
+O que ficou fora do escopo para manter a entrega focada:
 
-![A cozinha da Brasa do Jorge no pico: impressora cuspindo comanda, papel na bancada, no varal e no chão](imagens/BrasaDoJorge-cozinha.jpg)
+- painel administrativo completo
+- associação de pagamentos ou fechamento financeiro
+- integrações de delivery externo
+- gestão de estoque e produção por item em tempo real
+- autenticação e multiusuário
 
-E, do outro lado da passagem, o salão no mesmo horário — mesas cheias, motoboy parado na retirada e o garçom sem saber o que priorizar:
+Esses itens poderiam entrar em uma V2, mas não são necessários para validar a proposta do KDS no contexto do desafio.
 
-![O salão da Brasa do Jorge no pico: mesas cheias, motoboy esperando na retirada e a cozinha visível pela janela de passagem](imagens/BrasaDoJorge-salao.jpg)
+## Fluxo de uso do painel
 
-## A missão
+1. A aplicação carrega os pedidos ativos do mock REST.
+2. O stream SSE entra em operação e mantém a cabine em atualização em tempo real.
+3. Cada pedido pode avançar de etapa com uma ação de cozinha.
+4. O card mostra informações críticas: canal, mesa, itens, observações e tempo de espera.
+5. Se a conexão cair, o app mostra o estado de reconexão e preserva os dados já carregados.
 
-Seu Jorge ouviu falar de KDS (Kitchen Display System, o painel de pedidos da cozinha) e acha que resolve a vida dele. Mas ele não sabe o que é, nem o que precisa ter. Isso é com você.
+## Uso de IA
 
-A missão tem quatro partes:
+Usei IA como parceira de produtividade e revisão, principalmente para:
 
-1. Entender a dor. Leia o cenário acima e identifique o que realmente pesa. Nem tudo tem o mesmo peso.
-2. Decidir o escopo. Defina o que o KDS resolve agora e o que fica pra depois. Cortar bem faz parte da nota.
-3. Projetar. Desenhe como o KDS funciona: o fluxo, as telas, a hierarquia da informação. Não precisa ser um mockup caprichado no Figma; pode ser esboço, wireframe ou direto no código. Mas queremos entender por que ficou assim.
-4. Construir. Entregue uma versão navegável e funcional, consumindo o back que já deixamos pronto (veja abaixo).
+- acelerar a estrutura inicial do projeto em React Native
+- sugerir padrões de estado e separação de responsabilidades
+- gerar e ajustar testes de regra de negócio
+- refinar a UX de um painel de cozinha para manter foco na leitura rápida
 
-Não esperamos que você resolva todas as falas do Seu Jorge. Esperamos que você escolha as certas, com critério, e explique o porquê.
+Onde a IA errou ou ficou incompleta, eu corrigi manualmente:
 
-## Requisitos técnicos
+- ajustes finos em regras de transição de status
+- validação de tipos e compatibilidade com React Native/Jest
+- revisão de lógica de reconexão e deduplicação de eventos
+- refinamento visual para deixar o painel mais legível em ambiente real
 
-O KDS é um app Android para rodar num tablet na cozinha (e, se der, também no telefone e numa TV na parede). Não é um site.
+O código que foi entregue foi revisado e entendido antes de ser mantido. Entender o porquê da solução foi decisão minha, não apenas geração automática.
 
-### Stack
+## Testes
 
-Você pode fazer em **Kotlin** (Android nativo, Jetpack Compose) ou em **React Native**. Usamos as duas aqui no dia a dia. Como esse desafio é um app nativo de tablet de cozinha, nossa preferência é Kotlin — mas React Native é igualmente bem-vindo e não perde ponto. Escolha a que você domina melhor e justifique a escolha.
+A suíte de testes cobre as regras relevantes do domínio e o componente central de pedido:
 
-Use tipagem forte: Kotlin já é; em React Native, TypeScript com `strict` ligado. É o nosso padrão.
+```bash
+npm test -- --runInBand
+```
 
-### O que vamos olhar de perto
+Os testes verificam:
 
-São as dimensões que a gente avalia — em qualquer nível. O quanto você avança em cada uma é o que revela a sua senioridade:
+- transições válidas e inválidas de status
+- deduplicação de eventos e estado idempotente
+- renderização e comportamento do card de pedido em diferentes estágios
 
-- **Tempo real.** Pedido novo aparece sozinho na tela, sem ninguém dar refresh. Você escolhe a técnica (WebSocket, SSE, polling…), mas queremos ver a escolha justificada e o que costuma ser esquecido tratado:
-  - Reconexão quando a internet da cozinha cai (e ela cai).
-  - Sem duplicar pedido quando o mesmo evento chega duas vezes.
-- **Aguentar o pico.** A tela continua fluida com a fila cheia (pense em dezenas ou centenas de pedidos ativos e um novo a cada poucos segundos). Lista pensada para escala.
-- **Ciclo de vida do pedido claro.** As transições de status modeladas com intenção, não com `if` espalhado pela tela. Os status que o back usa estão no [README do mock](./mock/README.md).
-- **Responsividade por contexto de uso.** O tablet fica na horizontal, no calor da cozinha. Pense em como isso muda no telefone e numa TV vista de longe.
-- **Não morrer quando o back falha.** Internet caiu? Avise ("reconectando…") e mantenha o último estado conhecido. Nunca tela branca, nunca erro cru na cara do cozinheiro.
-- **UX de cozinha.** Mão suja, correria, sem tempo de mirar o toque: alvos grandes, informação legível a distância, estados que se distinguem sem depender só de cor. Um contador do tempo de espera do pedido à vista ajuda muito.
-- **Testes onde importa.** Não é cobertura de enfeite. É teste na lógica que quebra em produção: as transições de status, o evento duplicado, um componente central.
+## Trade-offs e caminhos futuros
 
-### O back
+### O que foi priorizado
 
-Já deixamos um mock server pronto na pasta [`/mock`](./mock). Ele:
+- confiabilidade da cozinha em vez de complexidade administrativa
+- informações essenciais em primeira tela
+- ciclo de vida do pedido explícito e previsível
+- robustez em perda de conexão, que é comum em rede de cozinha
 
-- Expõe uma API REST para listar pedidos e mudar o status de um pedido.
-- Empurra eventos em tempo real (pedidos novos e atualizações) via SSE.
-- Roda sem instalar nada, só com Node. Veja o [README do mock](./mock/README.md).
+### O que ficou como melhoria de V2
 
-"Encostar no back" aqui é literal: pode ler, ajustar e estender esse mock (um campo novo, um endpoint, a cadência dos eventos) pra servir a sua solução. Queremos ver como você lê código que não é seu e mexe nele com cuidado, não que escreva um backend do zero. Você não precisa (nem deve) construir um back próprio; o foco é o front.
+- agrupamento por área de produção (`CHAPA`, `FRITADEIRA`, `MONTAGEM`)
+- prioridade por canal e urgência do pedido
+- telas de histórico e produtividade por turno
+- notificações de eventos e analítica operacional
 
-## Como entregar
+## Estrutura importante do projeto
 
-- Repositório Git público no seu GitHub, com o histórico de commits preservado. Commits pequenos e com mensagem clara contam a favor; um único commit gigante "primeira versão" conta contra.
-- Um README seu explicando:
-  - Como rodar, com comandos reais testados numa máquina limpa. Se não roda pra gente, não conseguimos avaliar.
-  - Suas decisões e trade-offs: o que priorizou, o que cortou, por que escolheu tal técnica de tempo real, o que faria numa v2.
-  - Como você usou IA (veja a seção no começo).
-- Um vídeo ou GIF curto do KDS reagindo a um pedido novo em tempo real é opcional, mas ajuda.
+```text
+BrasaDoJorgeKds/
+├── App.tsx
+├── src/
+│   ├── components/
+│   ├── constants/
+│   ├── hooks/
+│   ├── screens/
+│   ├── services/
+│   ├── store/
+│   ├── types/
+│   └── utils/
+├── mock/
+│   └── README.md
+├── package.json
+├── jest.config.js
+├── tsconfig.json
+└── README.md
+```
 
-Quando terminar, envie o link do seu repositório para **desafio@pigz.com.br** para a gente avaliar.
+## Conclusão
 
-Se não der tempo de fazer tudo, entregue mesmo assim e conte o que ficou de fora e por quê. Preferimos um recorte bem-feito e bem explicado a tudo pela metade.
-
-## Sobre o tempo
-
-Não cronometramos, mas o desafio foi pensado pra caber num fim de semana sem virar noites. Se você está indo muito além disso, provavelmente está construindo mais do que a gente pediu, e saber parar no ponto também é uma decisão de sênior.
-
-Qualquer dúvida sobre o cenário, decida como achar melhor e anote a premissa no seu README. Interpretar a ambiguidade faz parte.
-
-Bom desafio, e divirta-se resolvendo o problema do Seu Jorge.
+A solução entrega um KDS funcional, estável e explicável, focado no problema real do Seu Jorge: reduzir ruído, priorizar pedidos corretamente e manter a cozinha sincronizada mesmo quando a rede falha. O objetivo foi criar uma entrega sólida e defensável em entrevista, sem transformar o projeto em um back-end novo ou em um produto de escopo exagerado.
