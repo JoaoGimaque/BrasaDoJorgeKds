@@ -178,6 +178,7 @@ function OrderCardComponent({
         {nextStage ? (
           <Pressable
             accessibilityRole="button"
+            accessibilityLabel={`Cancelar pedido ${order.reference}`}
             disabled={isUpdating}
             onPress={confirmCancel}
             style={({ pressed }) => [
