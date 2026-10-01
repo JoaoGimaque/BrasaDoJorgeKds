@@ -20,10 +20,17 @@ const STAGE_LABELS: Record<OrderStage, string> = {
 };
 
 const NEXT_ACTION_LABELS: Partial<Record<OrderStage, string>> = {
-  PENDING: 'Aceitar pedido',
-  CONFIRMED: 'Iniciar preparo',
-  PREPARING: 'Marcar como pronto',
-  READY: 'Concluir pedido',
+  PENDING: 'Aceitar',
+  CONFIRMED: 'Iniciar',
+  PREPARING: 'Pronto',
+  READY: 'Concluir',
+};
+
+const NEXT_ACTION_COLORS: Partial<Record<OrderStage, string>> = {
+  PENDING: '#EAB308',
+  CONFIRMED: '#3B82F6',
+  PREPARING: '#8B5CF6',
+  READY: '#22C55E',
 };
 
 const ORIGIN_LABELS: Record<Order['origin'], string> = {
@@ -36,12 +43,12 @@ const ORIGIN_LABELS: Record<Order['origin'], string> = {
 };
 
 const STAGE_COLORS: Record<OrderStage, string> = {
-  PENDING: '#C45E2B',
-  CONFIRMED: '#367A91',
-  PREPARING: '#B88819',
-  READY: '#397557',
+  PENDING: '#EAB308',
+  CONFIRMED: '#3B82F6',
+  PREPARING: '#8B5CF6',
+  READY: '#22C55E',
   DONE: '#64736B',
-  CANCELED: '#A6423A',
+  CANCELED: '#ff1100',
 };
 
 interface OrderCardProps {
@@ -86,6 +93,7 @@ function OrderCardComponent({
   onCancel,
 }: OrderCardProps) {
   const nextStage = getNextOrderStage(order.stage);
+  const nextActionColor = nextStage ? NEXT_ACTION_COLORS[nextStage] ?? '#173C30' : '#173C30';
   const orderNotes = [
     order.note,
     ...order.orderItems.map(item => item.note),
@@ -167,12 +175,16 @@ function OrderCardComponent({
             onPress={() => onAdvance(order.id, nextStage)}
             style={({ pressed }) => [
               styles.primaryAction,
+              { backgroundColor: nextActionColor },
               (pressed || isUpdating) && styles.actionMuted,
             ]}
           >
-            <Text style={styles.primaryActionText}>
-              {isUpdating ? 'Atualizando...' : NEXT_ACTION_LABELS[order.stage]}
-            </Text>
+            <View style={styles.primaryActionContent}>
+              <Text style={styles.primaryActionIcon}>✓</Text>
+              <Text style={styles.primaryActionText}>
+                {isUpdating ? 'Atualizando...' : NEXT_ACTION_LABELS[order.stage]}
+              </Text>
+            </View>
           </Pressable>
         ) : null}
         {nextStage ? (
@@ -186,7 +198,10 @@ function OrderCardComponent({
               (pressed || isUpdating) && styles.actionMuted,
             ]}
           >
-            <Text style={styles.cancelActionText}>Cancelar</Text>
+            <View style={styles.cancelActionContent}>
+              <Text style={styles.cancelActionIcon}>×</Text>
+              <Text style={styles.cancelActionText}>Cancelar</Text>
+            </View>
           </Pressable>
         ) : null}
       </View>
@@ -363,6 +378,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 4,
   },
+  cancelActionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  cancelActionIcon: {
+    color: '#81463F',
+    fontSize: 20,
+    fontWeight: '900',
+    lineHeight: 20,
+  },
   cancelActionText: {
     color: '#81463F',
     fontSize: 13,
@@ -370,5 +397,16 @@ const styles = StyleSheet.create({
   },
   actionMuted: {
     opacity: 0.55,
+  },
+  primaryActionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  primaryActionIcon: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '900',
   },
 });
