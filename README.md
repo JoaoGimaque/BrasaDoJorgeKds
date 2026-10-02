@@ -2,6 +2,31 @@
 
 Este projeto entrega um painel de cozinha para a Brasa do Jorge, com foco em pedidos ativos, tempo de espera e transição clara de status em tempo real. A aplicação foi construída em React Native + TypeScript e consome o mock já disponibilizado na pasta `mock`, sem criar um backend paralelo.
 
+## Tecnologias usadas
+
+### Front-end
+- React Native 0.87.1
+- TypeScript
+- React Native Safe Area Context
+- `react-native-sse` para eventos em tempo real
+
+### Estado e regras de negócio
+- reducer centralizado
+- modelo normalizado por `id`
+- regras de transição para lifecycle do pedido
+- validação de payloads e erros de API
+
+### Testes
+- Jest
+- React Test Renderer
+- testes focados em regras de negócio, eventos e componente central
+
+### Execução local
+- Node.js
+- npm
+- Android SDK / emulador Android
+- mock server em Node para REST + SSE
+
 ## Visão geral da solução
 
 O KDS foi pensado para o ambiente real da cozinha:
@@ -86,6 +111,10 @@ npx react-native run-android
 ```
 
 > Observação: o projeto foi pensado para Android/tablet, que é o contexto principal do desafio. O comportamento também fica aceitável em telas menores, mas o cenário principal é a cozinha em modo paisagem.
+
+## Demo
+
+https://github.com/user-attachments/assets/b499b979-5c0d-4350-bd3b-7347bc24631e
 
 ## Premissas e recortes
 
